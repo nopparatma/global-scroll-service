@@ -1,0 +1,11 @@
+{
+    "system": {
+        "welcome": "ยินดีต้อนรับสู่ Global Scroll!",
+        "gravity_warning": "ระวัง! แรงโน้มถ่วงกำลังดึงเราลง!",
+        "milestone_unlocked": "ปลดล็อคความสำเร็จ: {{height}} เมตร โดย {{username}}!"
+    },
+    "error": {
+        "too_fast": "คุณไถเร็วเกินไป! ใจเย็นๆ นะ",
+        "invalid_input": "ข้อมูลไม่ถูกต้อง"
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "system": {
+        "welcome": "Welcome to Global Scroll!",
+        "gravity_warning": "Warning! Gravity is pulling us down!",
+        "milestone_unlocked": "Milestone Unlocked: {{height}}m by {{username}}!"
+    },
+    "error": {
+        "too_fast": "You are scrolling too fast! Slow down.",
+        "invalid_input": "Invalid input data."
+    }
+}

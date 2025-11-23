@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Scroll Service - Test Client</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #2ecc71;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        button,
+        select {
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            background: white;
+            cursor: pointer;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .scroll-simulator {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .scroll-area {
+            height: 300px;
+            overflow-y: scroll;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+
+        .scroll-content {
+            height: 2000px;
+            background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .metric {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .logs {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        .log-event {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .log-data {
+            color: #ffff00;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .country-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .country-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .country-flag {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            flex: 1;
+            min-width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🌍 Global Scroll Service - Test Client</h1>
+
+        <!-- Connection Status -->
+        <div class="card">
+            <div class="status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <strong id="statusText">Disconnected</strong>
+            </div>
+
+            <div class="controls">
+                <input type="text" id="deviceId" placeholder="Device ID" value="">
+                <select id="countryCode">
+                    <option value="">Auto (GeoIP)</option>
+                    <option value="TH">🇹🇭 Thailand (TH)</option>
+                    <option value="US">🇺🇸 United States (US)</option>
+                    <option value="GB">🇬🇧 United Kingdom (GB)</option>
+                    <option value="JP">🇯🇵 Japan (JP)</option>
+                    <option value="KR">🇰🇷 South Korea (KR)</option>
+                    <option value="CN">🇨🇳 China (CN)</option>
+                    <option value="SG">🇸🇬 Singapore (SG)</option>
+                    <option value="AU">🇦🇺 Australia (AU)</option>
+                    <option value="DE">🇩🇪 Germany (DE)</option>
+                    <option value="FR">🇫🇷 France (FR)</option>
+                    <option value="CA">🇨🇦 Canada (CA)</option>
+                    <option value="IN">🇮🇳 India (IN)</option>
+                    <option value="BR">🇧🇷 Brazil (BR)</option>
+                    <option value="MX">🇲🇽 Mexico (MX)</option>
+                    <option value="XX">🏴 Unknown (XX)</option>
+                </select>
+                <input type="text" id="lang" placeholder="Language (en/th)" value="en">
+                <input type="text" id="serverUrl" placeholder="Server URL" value="http://localhost:3000">
+            </div>
+
+            <div class="quick-actions">
+                <button class="quick-action" id="connectBtn" onclick="connect()">🔌 Connect</button>
+                <button class="quick-action" id="disconnectBtn" onclick="disconnect()" disabled>🔌 Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="card">
+            <h2>📊 Real-time Metrics</h2>
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-label">Global Height</div>
+                    <div class="metric-value" id="globalHeight">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Velocity</div>
+                    <div class="metric-value" id="velocity">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Your Scrolls</div>
+                    <div class="metric-value" id="scrollCount">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Total Sent</div>
+                    <div class="metric-value" id="totalDelta">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Simulator -->
+        <div class="card">
+            <h2>🖱️ Scroll Simulator</h2>
+            <div class="scroll-simulator">
+                <p><strong>Method 1:</strong> Scroll in the box below (real scroll events)</p>
+                <div class="scroll-area" id="scrollArea">
+                    <div class="scroll-content">
+                        <h3>Scroll me! 👇</h3>
+                        <p>Keep scrolling to send scroll events to the server...</p>
+                        <p>Your scroll delta will be sent in batches every 100ms.</p>
+                        <p style="margin-top: 50px;">🎯 The more you scroll, the higher the global height!</p>
+                        <p style="margin-top: 50px;">🌍 Everyone's scrolls contribute to the global counter.</p>
+                        <p style="margin-top: 50px;">⚡ Watch the velocity change as you scroll faster or slower.</p>
+                        <p style="margin-top: 50px;">🏆 Try to reach the next milestone!</p>
+                        <p style="margin-top: 50px;">Keep going... 📜</p>
+                        <p style="margin-top: 50px;">Almost there... 🎉</p>
+                        <p style="margin-top: 50px;">You're doing great! 💪</p>
+                        <p style="margin-top: 50px;">Don't stop now! 🚀</p>
+                    </div>
+                </div>
+
+                <p style="margin-top: 15px;"><strong>Method 2:</strong> Send custom scroll amounts</p>
+                <div class="quick-actions" style="margin-top: 10px;">
+                    <button class="quick-action" onclick="sendScroll(10)">+10 px</button>
+                    <button class="quick-action" onclick="sendScroll(100)">+100 px</button>
+                    <button class="quick-action" onclick="sendScroll(1000)">+1000 px</button>
+                    <button class="quick-action" onclick="sendScroll(10000)">+10000 px 🚀</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Country Heights -->
+        <div class="card">
+            <h2>🌎 Country Heights</h2>
+            <div class="country-list" id="countryList">
+                <p style="color: #888;">No data yet. Start scrolling to see country contributions!</p>
+            </div>
+        </div>
+
+        <!-- Event Logs -->
+        <div class="card">
+            <h2>📝 Event Logs</h2>
+            <button onclick="clearLogs()" style="margin-bottom: 10px;">Clear Logs</button>
+            <div class="logs" id="logs">
+                <div class="log-entry">
+                    <span class="log-time">[Ready]</span>
+                    <span class="log-event">Waiting for connection...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let scrollDelta = 0;
+        let scrollCount = 0;
+        let totalDelta = 0;
+        let batchInterval = null;
+
+        // Generate random device ID if not set
+        function generateDeviceId() {
+            return 'device_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Initialize
+        document.getElementById('deviceId').value = generateDeviceId();
+
+        function log(event, data = '') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-event">${event}</span>
+                <span class="log-data">${data ? JSON.stringify(data) : ''}</span>
+            `;
+            logs.insertBefore(entry, logs.firstChild);
+
+            // Keep only last 50 entries
+            while (logs.children.length > 50) {
+                logs.removeChild(logs.lastChild);
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared');
+        }
+
+        function connect() {
+            const deviceId = document.getElementById('deviceId').value;
+            const lang = document.getElementById('lang').value;
+            const serverUrl = document.getElementById('serverUrl').value;
+            const countryCode = document.getElementById('countryCode').value;
+
+            if (!deviceId) {
+                alert('Please enter a device ID');
+                return;
+            }
+
+            const queryParams = {
+                deviceId: deviceId,
+                lang: lang
+            };
+
+            // Add country code if manually selected
+            if (countryCode) {
+                queryParams.countryCode = countryCode;
+            }
+
+            log('Connecting...', { deviceId, lang, countryCode: countryCode || 'Auto', serverUrl });
+
+            socket = io(serverUrl, {
+                query: queryParams,
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                log('✅ Connected', { id: socket.id });
+                updateConnectionStatus(true);
+                startScrollBatching();
+            });
+
+            socket.on('disconnect', () => {
+                log('❌ Disconnected');
+                updateConnectionStatus(false);
+                stopScrollBatching();
+            });
+
+            socket.on('tick', (data) => {
+                log('📊 Tick received', data);
+                updateMetrics(data);
+            });
+
+            socket.on('milestone_reached', (data) => {
+                log('🎉 MILESTONE!', data);
+                alert(`🎉 Milestone Reached! ${data.height} pixels!`);
+            });
+
+            socket.on('error', (error) => {
+                log('❌ Error', error);
+            });
+
+            socket.on('connect_error', (error) => {
+                log('❌ Connection Error', error.message);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                stopScrollBatching();
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            if (connected) {
+                indicator.classList.add('connected');
+                text.textContent = 'Connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        function updateMetrics(data) {
+            document.getElementById('globalHeight').textContent =
+                data.height ? data.height.toLocaleString() : '0';
+            document.getElementById('velocity').textContent =
+                data.velocity ? data.velocity.toFixed(2) : '0';
+
+            // Update country heights
+            if (data.countryHeights) {
+                const countryList = document.getElementById('countryList');
+                countryList.innerHTML = '';
+
+                const countries = Object.entries(data.countryHeights)
+                    .sort((a, b) => b[1] - a[1]);
+
+                countries.forEach(([code, height]) => {
+                    const item = document.createElement('div');
+                    item.className = 'country-item';
+                    item.innerHTML = `
+                        <span><strong>${code}</strong></span>
+                        <span>${height.toLocaleString()} px</span>
+                    `;
+                    countryList.appendChild(item);
+                });
+            }
+        }
+
+        function startScrollBatching() {
+            // Send accumulated scroll delta every 100ms
+            batchInterval = setInterval(() => {
+                if (scrollDelta > 0 && socket && socket.connected) {
+                    socket.emit('scroll_batch', { delta: scrollDelta });
+                    log('📤 Sent scroll_batch', { delta: scrollDelta });
+                    totalDelta += scrollDelta;
+                    document.getElementById('totalDelta').textContent = totalDelta.toLocaleString();
+                    scrollDelta = 0;
+                }
+            }, 100);
+        }
+
+        function stopScrollBatching() {
+            if (batchInterval) {
+                clearInterval(batchInterval);
+                batchInterval = null;
+            }
+        }
+
+        function sendScroll(delta) {
+            if (!socket || !socket.connected) {
+                alert('Please connect first!');
+                return;
+            }
+            scrollDelta += delta;
+            scrollCount++;
+            document.getElementById('scrollCount').textContent = scrollCount;
+        }
+
+        // Real scroll event listener
+        document.getElementById('scrollArea').addEventListener('scroll', (e) => {
+            if (!socket || !socket.connected) return;
+
+            const delta = Math.abs(e.target.scrollTop - (e.target.lastScrollTop || 0));
+            e.target.lastScrollTop = e.target.scrollTop;
+
+            if (delta > 0) {
+                scrollDelta += delta;
+                scrollCount++;
+                document.getElementById('scrollCount').textContent = scrollCount;
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+    </script>
+</body>
+
+</html>
