@@ -1,1 +1,25 @@
+#!/usr/bin/env sh
+
+# Function to add directory to PATH if it exists
+add_to_path() {
+  if [ -d "$1" ] && [ -x "$1/node" ]; then
+    export PATH="$1:$PATH"
+    return 0
+  fi
+  return 1
+}
+
+# Try to find Node.js and add it to PATH
+if ! command -v node > /dev/null 2>&1; then
+  # Node not in PATH, try to find it
+  add_to_path "/opt/homebrew/bin" || \
+  add_to_path "/usr/local/bin" || \
+  add_to_path "$HOME/.nvm/versions/node/$(ls -t "$HOME/.nvm/versions/node" 2>/dev/null | head -1)/bin" || \
+  {
+    echo "Error: node not found. Please ensure Node.js is installed."
+    exit 1
+  }
+fi
+
+# Now run build
 npm run build
