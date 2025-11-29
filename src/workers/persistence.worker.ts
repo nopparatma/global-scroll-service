@@ -6,15 +6,24 @@ const SYNC_INTERVAL = 30000; // 30 sec
 export const startPersistenceWorker = () => {
   setInterval(async () => {
     try {
-      const height = await redisService.getGlobalHeight();
+      // Sync Country Heights (includes global aggregate)
+      const countryHeights = await redisService.getAllCountryHeights();
 
-      await prisma.globalHistory.create({
-        data: {
-          height: BigInt(height),
-        },
-      });
+      if (Object.keys(countryHeights).length > 0) {
+        // Batch insert country heights
+        const countryData = Object.entries(countryHeights).map(
+          ([countryCode, height]) => ({
+            countryCode,
+            height: BigInt(height),
+          }),
+        );
 
-      logger.info(`Synced global height to DB: ${height}`);
+        await prisma.transactionHistoryRaw.createMany({
+          data: countryData,
+        });
+
+        logger.info(`Synced ${countryData.length} country heights to DB`);
+      }
     } catch (error) {
       logger.error("Persistence worker error", error);
     }

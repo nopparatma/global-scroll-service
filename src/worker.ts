@@ -1,6 +1,8 @@
 import { redisService } from "./services/redis.service";
 import { startPersistenceWorker } from "./workers/persistence.worker";
 import { startGravityWorker } from "./workers/gravity.worker";
+import { runAggregation } from "./workers/aggregation.worker";
+import cron from "node-cron";
 import logger from "./utils/logger";
 
 async function startWorker() {
@@ -14,6 +16,18 @@ async function startWorker() {
     startPersistenceWorker(); // Sync Redis → PostgreSQL
     startGravityWorker(); // Apply gravity when idle
 
+    // Schedule aggregation job (03:00 AM daily)
+    cron.schedule("0 3 * * *", async () => {
+      logger.info("Starting scheduled aggregation...");
+      try {
+        await runAggregation();
+        logger.info("Scheduled aggregation completed successfully");
+      } catch (error) {
+        logger.error("Scheduled aggregation failed", error);
+      }
+    });
+
+    logger.info("Aggregation cron job scheduled (03:00 AM daily)");
     logger.info("Worker process started successfully");
 
     // Graceful Shutdown

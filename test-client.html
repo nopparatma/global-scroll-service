@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Scroll Service - Test Client</title>
+    <title>Global Scroll Service - Test Client v2</title>
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <style>
         * {
@@ -14,7 +14,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
@@ -22,7 +22,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -30,75 +30,113 @@
             color: white;
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 2.8em;
+            font-weight: 700;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.5px;
         }
 
         .card {
             background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s;
         }
 
-        .status {
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .status-bar {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
         .status-indicator {
-            width: 15px;
-            height: 15px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: #e74c3c;
             animation: pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
         }
 
         .status-indicator.connected {
             background: #2ecc71;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
         }
 
         @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
 
-            0%,
-            100% {
-                opacity: 1;
-            }
+        .status-text {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
 
-            50% {
-                opacity: 0.5;
-            }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .user-badge {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .controls {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
 
-        input,
-        button,
-        select {
-            padding: 12px 20px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
+        input, button, select {
+            padding: 14px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: inherit;
         }
 
-        input:focus,
-        select:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         select {
             background: white;
             cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
         }
 
         button {
@@ -106,138 +144,348 @@
             color: white;
             border: none;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        button:active {
-            transform: translateY(0);
+        button:active:not(:disabled) {
+            transform: translateY(-1px);
         }
 
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        .scroll-simulator {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+        .action-buttons {
+            display: flex;
+            gap: 15px;
         }
 
-        .scroll-area {
-            height: 300px;
-            overflow-y: scroll;
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 10px;
-        }
-
-        .scroll-content {
-            height: 2000px;
-            background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
-            padding: 20px;
-            border-radius: 5px;
+        .action-buttons button {
+            flex: 1;
+            min-width: 140px;
         }
 
         .metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
         }
 
         .metric {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 15px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .metric:hover::before {
+            transform: translateX(100%);
         }
 
         .metric-label {
-            font-size: 12px;
-            opacity: 0.9;
-            margin-bottom: 5px;
+            font-size: 13px;
+            opacity: 0.95;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
         }
 
         .metric-value {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 32px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .scroll-simulator {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .simulator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .scroll-area {
+            height: 350px;
+            overflow-y: scroll;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .scroll-area::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .scroll-area::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .scroll-area::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .scroll-area::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .scroll-content {
+            height: 2500px;
+            background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        .scroll-content h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .scroll-content p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .quick-action {
+            min-width: unset;
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.6em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            font-size: 1.2em;
+        }
+
+        .country-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .country-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .country-item:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .country-code {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #667eea;
+        }
+
+        .country-height {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .logs-container {
+            position: relative;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
 
         .logs {
             background: #1e1e1e;
             color: #00ff00;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 300px;
+            padding: 20px;
+            border-radius: 12px;
+            max-height: 350px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
             font-size: 13px;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .logs::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .logs::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .logs::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 5px;
         }
 
         .log-entry {
-            margin-bottom: 5px;
-            padding: 3px 0;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.1);
         }
 
         .log-time {
             color: #888;
-            margin-right: 10px;
+            margin-right: 12px;
+            font-weight: 600;
         }
 
         .log-event {
             color: #00ffff;
-            font-weight: bold;
+            font-weight: 700;
         }
 
         .log-data {
             color: #ffff00;
+            margin-left: 8px;
         }
 
-        h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5em;
+        .log-error {
+            color: #ff6b6b;
         }
 
-        .country-list {
+        .log-success {
+            color: #51cf66;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            background: #667eea;
+            color: white;
+        }
+
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
         }
 
-        .country-item {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
         }
 
-        .country-flag {
-            font-size: 24px;
-            margin-right: 10px;
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
         }
 
-        .quick-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #667eea;
         }
 
-        .quick-action {
-            flex: 1;
-            min-width: 150px;
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .highlight {
+            animation: highlightPulse 1s ease-in-out;
+        }
+
+        @keyframes highlightPulse {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(102, 126, 234, 0.2); }
         }
     </style>
 </head>
@@ -246,53 +494,65 @@
     <div class="container">
         <h1>🌍 Global Scroll Service - Test Client</h1>
 
-        <!-- Connection Status -->
+        <!-- Connection Status & User Info -->
         <div class="card">
-            <div class="status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <strong id="statusText">Disconnected</strong>
+            <div class="status-bar">
+                <div class="status-left">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <div>
+                        <div class="status-text" id="statusText">Disconnected</div>
+                        <div class="user-info" id="userInfo">
+                            <span>Ready to connect</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-info" id="socketInfo"></div>
             </div>
 
             <div class="controls">
-                <input type="text" id="deviceId" placeholder="Device ID" value="">
+                <input type="text" id="deviceId" placeholder="Device ID (auto-generated)" value="">
                 <select id="countryCode">
-                    <option value="">Auto (GeoIP)</option>
-                    <option value="TH">🇹🇭 Thailand (TH)</option>
-                    <option value="US">🇺🇸 United States (US)</option>
-                    <option value="GB">🇬🇧 United Kingdom (GB)</option>
-                    <option value="JP">🇯🇵 Japan (JP)</option>
-                    <option value="KR">🇰🇷 South Korea (KR)</option>
-                    <option value="CN">🇨🇳 China (CN)</option>
-                    <option value="SG">🇸🇬 Singapore (SG)</option>
-                    <option value="AU">🇦🇺 Australia (AU)</option>
-                    <option value="DE">🇩🇪 Germany (DE)</option>
-                    <option value="FR">🇫🇷 France (FR)</option>
-                    <option value="CA">🇨🇦 Canada (CA)</option>
-                    <option value="IN">🇮🇳 India (IN)</option>
-                    <option value="BR">🇧🇷 Brazil (BR)</option>
-                    <option value="MX">🇲🇽 Mexico (MX)</option>
-                    <option value="XX">🏴 Unknown (XX)</option>
+                    <option value="">Auto Detect (GeoIP)</option>
+                    <option value="TH">🇹🇭 Thailand</option>
+                    <option value="US">🇺🇸 United States</option>
+                    <option value="GB">🇬🇧 United Kingdom</option>
+                    <option value="JP">🇯🇵 Japan</option>
+                    <option value="KR">🇰🇷 South Korea</option>
+                    <option value="CN">🇨🇳 China</option>
+                    <option value="SG">🇸🇬 Singapore</option>
+                    <option value="AU">🇦🇺 Australia</option>
+                    <option value="DE">🇩🇪 Germany</option>
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="CA">🇨🇦 Canada</option>
+                    <option value="IN">🇮🇳 India</option>
+                    <option value="BR">🇧🇷 Brazil</option>
+                    <option value="MX">🇲🇽 Mexico</option>
+                    <option value="XX">🏴 Unknown</option>
                 </select>
-                <input type="text" id="lang" placeholder="Language (en/th)" value="en">
+                <select id="lang">
+                    <option value="en">🇬🇧 English</option>
+                    <option value="th">🇹🇭 ไทย</option>
+                </select>
                 <input type="text" id="serverUrl" placeholder="Server URL" value="http://localhost:3000">
             </div>
 
-            <div class="quick-actions">
-                <button class="quick-action" id="connectBtn" onclick="connect()">🔌 Connect</button>
-                <button class="quick-action" id="disconnectBtn" onclick="disconnect()" disabled>🔌 Disconnect</button>
+            <div class="action-buttons">
+                <button id="connectBtn" onclick="connect()">🔌 Connect</button>
+                <button id="disconnectBtn" onclick="disconnect()" disabled>🔌 Disconnect</button>
+                <button onclick="reconnect()">🔄 Reconnect</button>
             </div>
         </div>
 
-        <!-- Metrics -->
+        <!-- Real-time Metrics -->
         <div class="card">
-            <h2>📊 Real-time Metrics</h2>
+            <h2><span class="section-icon">📊</span> Real-time Metrics</h2>
             <div class="metrics">
                 <div class="metric">
                     <div class="metric-label">Global Height</div>
                     <div class="metric-value" id="globalHeight">0</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">Velocity</div>
+                    <div class="metric-label">Velocity (px/s)</div>
                     <div class="metric-value" id="velocity">0</div>
                 </div>
                 <div class="metric">
@@ -300,106 +560,214 @@
                     <div class="metric-value" id="scrollCount">0</div>
                 </div>
                 <div class="metric">
-                    <div class="metric-label">Total Sent</div>
+                    <div class="metric-label">Total Sent (px)</div>
                     <div class="metric-value" id="totalDelta">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Countries Active</div>
+                    <div class="metric-value" id="countryCount">0</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Last Update</div>
+                    <div class="metric-value" id="lastUpdate" style="font-size: 16px;">--:--:--</div>
                 </div>
             </div>
         </div>
 
         <!-- Scroll Simulator -->
         <div class="card">
-            <h2>🖱️ Scroll Simulator</h2>
+            <h2><span class="section-icon">🖱️</span> Scroll Simulator</h2>
             <div class="scroll-simulator">
-                <p><strong>Method 1:</strong> Scroll in the box below (real scroll events)</p>
+                <div class="simulator-header">
+                    <strong>Method 1: Real Scroll Events</strong>
+                    <span class="badge">Batch every 100ms</span>
+                </div>
+
                 <div class="scroll-area" id="scrollArea">
                     <div class="scroll-content">
-                        <h3>Scroll me! 👇</h3>
-                        <p>Keep scrolling to send scroll events to the server...</p>
-                        <p>Your scroll delta will be sent in batches every 100ms.</p>
-                        <p style="margin-top: 50px;">🎯 The more you scroll, the higher the global height!</p>
-                        <p style="margin-top: 50px;">🌍 Everyone's scrolls contribute to the global counter.</p>
-                        <p style="margin-top: 50px;">⚡ Watch the velocity change as you scroll faster or slower.</p>
-                        <p style="margin-top: 50px;">🏆 Try to reach the next milestone!</p>
-                        <p style="margin-top: 50px;">Keep going... 📜</p>
-                        <p style="margin-top: 50px;">Almost there... 🎉</p>
-                        <p style="margin-top: 50px;">You're doing great! 💪</p>
-                        <p style="margin-top: 50px;">Don't stop now! 🚀</p>
+                        <h3>🎯 Scroll to Contribute!</h3>
+                        <p>Welcome to the Global Scroll Service test client. This area simulates real scrolling behavior.</p>
+                        <p>Every pixel you scroll contributes to the global height counter!</p>
+
+                        <h3 style="margin-top: 50px;">⚡ How It Works</h3>
+                        <p>1. Your scroll events are batched locally every 100ms</p>
+                        <p>2. Batches are sent to the server with delta values</p>
+                        <p>3. Server validates using anti-cheat (max 5000px/s)</p>
+                        <p>4. Redis atomically updates global & country heights</p>
+                        <p>5. Server broadcasts updates to all clients every 200ms</p>
+
+                        <h3 style="margin-top: 50px;">🌍 Global Unity</h3>
+                        <p>You're scrolling with users from around the world!</p>
+                        <p>Check the country heights below to see global contributions.</p>
+
+                        <h3 style="margin-top: 50px;">🏆 Milestones</h3>
+                        <p>Milestones are unlocked every 1000m (1,000,000 px)</p>
+                        <p>Be the user to trigger the next milestone and earn a flag!</p>
+
+                        <h3 style="margin-top: 50px;">🔒 Anti-Cheat Protection</h3>
+                        <p>Maximum velocity: 5000 px/s</p>
+                        <p>Maximum batch size: 10,000 px</p>
+                        <p>Minimum batch interval: 500ms</p>
+
+                        <h3 style="margin-top: 50px;">Keep Scrolling! 🚀</h3>
+                        <p>The more you scroll, the higher we go!</p>
+                        <p>Watch the velocity metric to see real-time speed.</p>
+
+                        <p style="margin-top: 100px; text-align: center; font-size: 2em;">🎉</p>
+                        <p style="text-align: center;">You made it to the bottom!</p>
                     </div>
                 </div>
 
-                <p style="margin-top: 15px;"><strong>Method 2:</strong> Send custom scroll amounts</p>
-                <div class="quick-actions" style="margin-top: 10px;">
+                <div class="simulator-header" style="margin-top: 25px;">
+                    <strong>Method 2: Manual Scroll Amounts</strong>
+                    <span class="badge">Instant send</span>
+                </div>
+                <div class="quick-actions">
                     <button class="quick-action" onclick="sendScroll(10)">+10 px</button>
                     <button class="quick-action" onclick="sendScroll(100)">+100 px</button>
-                    <button class="quick-action" onclick="sendScroll(1000)">+1000 px</button>
-                    <button class="quick-action" onclick="sendScroll(10000)">+10000 px 🚀</button>
+                    <button class="quick-action" onclick="sendScroll(500)">+500 px</button>
+                    <button class="quick-action" onclick="sendScroll(1000)">+1K px</button>
+                    <button class="quick-action" onclick="sendScroll(5000)">+5K px 🔥</button>
+                    <button class="quick-action" onclick="sendScroll(10000)">+10K px 🚀</button>
+                </div>
+
+                <div class="simulator-header" style="margin-top: 25px;">
+                    <strong>Method 3: Auto Scroll</strong>
+                    <span class="badge" id="autoScrollStatus">Stopped</span>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action" onclick="startAutoScroll(100, 1000)">100px/1s</button>
+                    <button class="quick-action" onclick="startAutoScroll(500, 1000)">500px/1s</button>
+                    <button class="quick-action" onclick="startAutoScroll(1000, 1000)">1K px/1s</button>
+                    <button class="quick-action" onclick="startAutoScroll(5000, 1000)">5K px/1s ⚡</button>
+                    <button class="quick-action" onclick="stopAutoScroll()">⏹️ Stop</button>
                 </div>
             </div>
         </div>
 
         <!-- Country Heights -->
         <div class="card">
-            <h2>🌎 Country Heights</h2>
+            <h2><span class="section-icon">🌎</span> Country Leaderboard</h2>
             <div class="country-list" id="countryList">
-                <p style="color: #888;">No data yet. Start scrolling to see country contributions!</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌍</div>
+                    <p>No country data yet</p>
+                    <p>Start scrolling to see contributions!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Statistics -->
+        <div class="card">
+            <h2><span class="section-icon">📈</span> Session Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Batches Sent</div>
+                    <div class="stat-value" id="batchesSent">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Ticks Received</div>
+                    <div class="stat-value" id="ticksReceived">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Connection Time</div>
+                    <div class="stat-value" id="connectionTime">0s</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Velocity</div>
+                    <div class="stat-value" id="avgVelocity">0</div>
+                </div>
             </div>
         </div>
 
         <!-- Event Logs -->
         <div class="card">
-            <h2>📝 Event Logs</h2>
-            <button onclick="clearLogs()" style="margin-bottom: 10px;">Clear Logs</button>
+            <div class="logs-header">
+                <h2 style="margin: 0;"><span class="section-icon">📝</span> Event Logs</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="toggleLogFilter('all')" id="filterAll" style="padding: 8px 16px;">All</button>
+                    <button onclick="toggleLogFilter('events')" id="filterEvents" style="padding: 8px 16px;">Events</button>
+                    <button onclick="toggleLogFilter('errors')" id="filterErrors" style="padding: 8px 16px;">Errors</button>
+                    <button onclick="clearLogs()" style="padding: 8px 16px;">Clear</button>
+                </div>
+            </div>
             <div class="logs" id="logs">
-                <div class="log-entry">
-                    <span class="log-time">[Ready]</span>
-                    <span class="log-event">Waiting for connection...</span>
+                <div class="log-entry log-success">
+                    <span class="log-time">[System]</span>
+                    <span class="log-event">Test client initialized and ready</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Global State
         let socket = null;
         let scrollDelta = 0;
         let scrollCount = 0;
         let totalDelta = 0;
         let batchInterval = null;
+        let autoScrollInterval = null;
+        let connectionStartTime = null;
+        let connectionTimeInterval = null;
+        let batchesSent = 0;
+        let ticksReceived = 0;
+        let velocitySum = 0;
+        let logFilter = 'all';
 
-        // Generate random device ID if not set
+        // Initialize device ID
         function generateDeviceId() {
-            return 'device_' + Math.random().toString(36).substr(2, 9);
+            return 'test_' + Math.random().toString(36).substr(2, 11) + '_' + Date.now();
         }
 
-        // Initialize
         document.getElementById('deviceId').value = generateDeviceId();
 
-        function log(event, data = '') {
+        // Logging
+        function log(event, data = '', type = 'info') {
+            if (logFilter === 'events' && type === 'error') return;
+            if (logFilter === 'errors' && type !== 'error') return;
+
             const logs = document.getElementById('logs');
-            const time = new Date().toLocaleTimeString();
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
             const entry = document.createElement('div');
-            entry.className = 'log-entry';
+            entry.className = `log-entry ${type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : ''}`;
+
+            const dataStr = data ? (typeof data === 'object' ? JSON.stringify(data, null, 2) : data) : '';
             entry.innerHTML = `
                 <span class="log-time">[${time}]</span>
                 <span class="log-event">${event}</span>
-                <span class="log-data">${data ? JSON.stringify(data) : ''}</span>
+                ${dataStr ? `<span class="log-data">${dataStr}</span>` : ''}
             `;
+
             logs.insertBefore(entry, logs.firstChild);
 
-            // Keep only last 50 entries
-            while (logs.children.length > 50) {
+            // Keep only last 100 entries
+            while (logs.children.length > 100) {
                 logs.removeChild(logs.lastChild);
             }
+
+            // Auto scroll to top
+            logs.scrollTop = 0;
+        }
+
+        function toggleLogFilter(filter) {
+            logFilter = filter;
+            document.getElementById('filterAll').style.opacity = filter === 'all' ? '1' : '0.5';
+            document.getElementById('filterEvents').style.opacity = filter === 'events' ? '1' : '0.5';
+            document.getElementById('filterErrors').style.opacity = filter === 'errors' ? '1' : '0.5';
+            log(`Filter changed to: ${filter}`, '', 'success');
         }
 
         function clearLogs() {
             document.getElementById('logs').innerHTML = '';
-            log('Logs cleared');
+            log('Logs cleared', '', 'success');
         }
 
+        // Connection Management
         function connect() {
-            const deviceId = document.getElementById('deviceId').value;
+            const deviceId = document.getElementById('deviceId').value.trim();
             const lang = document.getElementById('lang').value;
-            const serverUrl = document.getElementById('serverUrl').value;
+            const serverUrl = document.getElementById('serverUrl').value.trim();
             const countryCode = document.getElementById('countryCode').value;
 
             if (!deviceId) {
@@ -407,52 +775,25 @@
                 return;
             }
 
-            const queryParams = {
-                deviceId: deviceId,
-                lang: lang
-            };
-
-            // Add country code if manually selected
-            if (countryCode) {
-                queryParams.countryCode = countryCode;
+            if (!serverUrl) {
+                alert('Please enter a server URL');
+                return;
             }
 
-            log('Connecting...', { deviceId, lang, countryCode: countryCode || 'Auto', serverUrl });
+            const queryParams = { deviceId, lang };
+            if (countryCode) queryParams.countryCode = countryCode;
+
+            log('🔌 Connecting...', { deviceId, lang, country: countryCode || 'Auto', serverUrl }, 'success');
 
             socket = io(serverUrl, {
                 query: queryParams,
-                transports: ['websocket', 'polling']
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
             });
 
-            socket.on('connect', () => {
-                log('✅ Connected', { id: socket.id });
-                updateConnectionStatus(true);
-                startScrollBatching();
-            });
-
-            socket.on('disconnect', () => {
-                log('❌ Disconnected');
-                updateConnectionStatus(false);
-                stopScrollBatching();
-            });
-
-            socket.on('tick', (data) => {
-                log('📊 Tick received', data);
-                updateMetrics(data);
-            });
-
-            socket.on('milestone_reached', (data) => {
-                log('🎉 MILESTONE!', data);
-                alert(`🎉 Milestone Reached! ${data.height} pixels!`);
-            });
-
-            socket.on('error', (error) => {
-                log('❌ Error', error);
-            });
-
-            socket.on('connect_error', (error) => {
-                log('❌ Connection Error', error.message);
-            });
+            setupSocketListeners();
         }
 
         function disconnect() {
@@ -460,9 +801,75 @@
                 socket.disconnect();
                 socket = null;
                 stopScrollBatching();
+                stopAutoScroll();
+                stopConnectionTimer();
             }
         }
 
+        function reconnect() {
+            disconnect();
+            setTimeout(connect, 500);
+        }
+
+        function setupSocketListeners() {
+            socket.on('connect', () => {
+                log('✅ Connected', { socketId: socket.id }, 'success');
+                updateConnectionStatus(true);
+                startScrollBatching();
+                startConnectionTimer();
+            });
+
+            socket.on('disconnect', (reason) => {
+                log('❌ Disconnected', { reason }, 'error');
+                updateConnectionStatus(false);
+                stopScrollBatching();
+                stopConnectionTimer();
+            });
+
+            socket.on('init', (data) => {
+                log('🎉 Init received', data, 'success');
+                updateMetrics(data);
+                updateUserInfo(data.user, data.message);
+            });
+
+            socket.on('tick', (data) => {
+                ticksReceived++;
+                document.getElementById('ticksReceived').textContent = ticksReceived;
+                updateMetrics(data);
+
+                // Only log every 10th tick to reduce spam
+                if (ticksReceived % 10 === 0) {
+                    log('📊 Tick #' + ticksReceived, { height: data.height, velocity: data.velocity });
+                }
+            });
+
+            socket.on('milestone_reached', (data) => {
+                log('🎉 MILESTONE REACHED!', data, 'success');
+                showMilestoneAlert(data);
+            });
+
+            socket.on('error', (error) => {
+                log('❌ Socket Error', error, 'error');
+            });
+
+            socket.on('connect_error', (error) => {
+                log('❌ Connection Error', error.message, 'error');
+            });
+
+            socket.on('reconnect', (attemptNumber) => {
+                log('🔄 Reconnected', { attempt: attemptNumber }, 'success');
+            });
+
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                log('🔄 Reconnecting...', { attempt: attemptNumber });
+            });
+
+            socket.on('reconnect_failed', () => {
+                log('❌ Reconnection failed', '', 'error');
+            });
+        }
+
+        // UI Updates
         function updateConnectionStatus(connected) {
             const indicator = document.getElementById('statusIndicator');
             const text = document.getElementById('statusText');
@@ -472,53 +879,123 @@
             if (connected) {
                 indicator.classList.add('connected');
                 text.textContent = 'Connected';
+                text.style.color = '#2ecc71';
                 connectBtn.disabled = true;
                 disconnectBtn.disabled = false;
+                document.getElementById('socketInfo').innerHTML = `<span class="user-badge">Socket: ${socket.id}</span>`;
             } else {
                 indicator.classList.remove('connected');
                 text.textContent = 'Disconnected';
+                text.style.color = '#e74c3c';
                 connectBtn.disabled = false;
                 disconnectBtn.disabled = true;
+                document.getElementById('socketInfo').innerHTML = '';
+            }
+        }
+
+        function updateUserInfo(user, message) {
+            if (user) {
+                document.getElementById('userInfo').innerHTML = `
+                    <span class="user-badge">User ID: ${user.id}</span>
+                    <span class="user-badge">Country: ${user.country}</span>
+                    ${message ? `<span>${message}</span>` : ''}
+                `;
             }
         }
 
         function updateMetrics(data) {
-            document.getElementById('globalHeight').textContent =
-                data.height ? data.height.toLocaleString() : '0';
-            document.getElementById('velocity').textContent =
-                data.velocity ? data.velocity.toFixed(2) : '0';
+            // Update global height
+            const height = typeof data.height === 'string' ? BigInt(data.height) : BigInt(data.height || 0);
+            document.getElementById('globalHeight').textContent = height.toLocaleString();
+
+            // Update velocity
+            const velocity = parseFloat(data.velocity) || 0;
+            document.getElementById('velocity').textContent = velocity.toFixed(2);
+
+            if (velocity > 0) {
+                velocitySum += velocity;
+                const avgVel = velocitySum / ticksReceived;
+                document.getElementById('avgVelocity').textContent = avgVel.toFixed(2);
+            }
+
+            // Update last update time
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
 
             // Update country heights
             if (data.countryHeights) {
-                const countryList = document.getElementById('countryList');
-                countryList.innerHTML = '';
-
-                const countries = Object.entries(data.countryHeights)
-                    .sort((a, b) => b[1] - a[1]);
-
-                countries.forEach(([code, height]) => {
-                    const item = document.createElement('div');
-                    item.className = 'country-item';
-                    item.innerHTML = `
-                        <span><strong>${code}</strong></span>
-                        <span>${height.toLocaleString()} px</span>
-                    `;
-                    countryList.appendChild(item);
-                });
+                updateCountryList(data.countryHeights);
             }
         }
 
+        function updateCountryList(countryHeights) {
+            const countryList = document.getElementById('countryList');
+
+            if (Object.keys(countryHeights).length === 0) {
+                countryList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌍</div>
+                        <p>No country data yet</p>
+                    </div>
+                `;
+                document.getElementById('countryCount').textContent = '0';
+                return;
+            }
+
+            // Sort by height
+            const countries = Object.entries(countryHeights)
+                .map(([code, height]) => ({
+                    code,
+                    height: typeof height === 'string' ? BigInt(height) : BigInt(height)
+                }))
+                .sort((a, b) => {
+                    if (a.height > b.height) return -1;
+                    if (a.height < b.height) return 1;
+                    return 0;
+                });
+
+            countryList.innerHTML = '';
+            countries.forEach(({ code, height }, index) => {
+                const item = document.createElement('div');
+                item.className = 'country-item';
+                const medal = index === 0 ? '🥇 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+                item.innerHTML = `
+                    <span class="country-code">${medal}${code}</span>
+                    <span class="country-height">${height.toLocaleString()} px</span>
+                `;
+                countryList.appendChild(item);
+            });
+
+            document.getElementById('countryCount').textContent = countries.length;
+        }
+
+        function showMilestoneAlert(data) {
+            const message = `
+🎉 MILESTONE REACHED! 🎉
+
+Height: ${data.height} pixels
+User: ${data.userId || 'Unknown'}
+Country: ${data.countryCode || 'Unknown'}
+
+Congratulations on reaching this milestone!
+            `;
+            alert(message);
+        }
+
+        // Scroll Batching
         function startScrollBatching() {
-            // Send accumulated scroll delta every 100ms
             batchInterval = setInterval(() => {
                 if (scrollDelta > 0 && socket && socket.connected) {
                     socket.emit('scroll_batch', { delta: scrollDelta });
-                    log('📤 Sent scroll_batch', { delta: scrollDelta });
+                    log(`📤 Batch sent: ${scrollDelta}px`);
+
+                    batchesSent++;
+                    document.getElementById('batchesSent').textContent = batchesSent;
+
                     totalDelta += scrollDelta;
                     document.getElementById('totalDelta').textContent = totalDelta.toLocaleString();
                     scrollDelta = 0;
                 }
-            }, 100);
+            }, 100); // Send every 100ms
         }
 
         function stopScrollBatching() {
@@ -528,6 +1005,7 @@
             }
         }
 
+        // Manual Scroll
         function sendScroll(delta) {
             if (!socket || !socket.connected) {
                 alert('Please connect first!');
@@ -536,14 +1014,45 @@
             scrollDelta += delta;
             scrollCount++;
             document.getElementById('scrollCount').textContent = scrollCount;
+            log(`➕ Added ${delta}px to batch`, '', 'success');
         }
 
-        // Real scroll event listener
+        // Auto Scroll
+        function startAutoScroll(delta, interval) {
+            stopAutoScroll();
+
+            if (!socket || !socket.connected) {
+                alert('Please connect first!');
+                return;
+            }
+
+            log(`🤖 Auto-scroll started: ${delta}px every ${interval}ms`, '', 'success');
+            document.getElementById('autoScrollStatus').textContent = `${delta}px/${interval}ms`;
+            document.getElementById('autoScrollStatus').style.background = '#2ecc71';
+
+            autoScrollInterval = setInterval(() => {
+                sendScroll(delta);
+            }, interval);
+        }
+
+        function stopAutoScroll() {
+            if (autoScrollInterval) {
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+                log('⏹️ Auto-scroll stopped', '', 'success');
+                document.getElementById('autoScrollStatus').textContent = 'Stopped';
+                document.getElementById('autoScrollStatus').style.background = '#667eea';
+            }
+        }
+
+        // Real Scroll Event
+        let lastScrollTop = 0;
         document.getElementById('scrollArea').addEventListener('scroll', (e) => {
             if (!socket || !socket.connected) return;
 
-            const delta = Math.abs(e.target.scrollTop - (e.target.lastScrollTop || 0));
-            e.target.lastScrollTop = e.target.scrollTop;
+            const currentScrollTop = e.target.scrollTop;
+            const delta = Math.abs(currentScrollTop - lastScrollTop);
+            lastScrollTop = currentScrollTop;
 
             if (delta > 0) {
                 scrollDelta += delta;
@@ -552,12 +1061,40 @@
             }
         });
 
+        // Connection Time Tracker
+        function startConnectionTimer() {
+            connectionStartTime = Date.now();
+            connectionTimeInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - connectionStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('connectionTime').textContent =
+                    minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+            }, 1000);
+        }
+
+        function stopConnectionTimer() {
+            if (connectionTimeInterval) {
+                clearInterval(connectionTimeInterval);
+                connectionTimeInterval = null;
+            }
+            document.getElementById('connectionTime').textContent = '0s';
+        }
+
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (socket) {
                 socket.disconnect();
             }
+            stopAutoScroll();
         });
+
+        // Initialize filter buttons
+        document.getElementById('filterAll').style.opacity = '1';
+        document.getElementById('filterEvents').style.opacity = '0.5';
+        document.getElementById('filterErrors').style.opacity = '0.5';
+
+        log('🚀 Test client ready!', 'Configure settings above and click Connect', 'success');
     </script>
 </body>
 

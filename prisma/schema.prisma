@@ -12,27 +12,37 @@ model User {
   countryCode String   @default("XX") @map("country_code")
   username    String?
   createdAt   DateTime @default(now()) @map("created_at")
-  flags       Flag[]
 
   @@map("users")
 }
 
-model Flag {
-  id          Int      @id @default(autoincrement())
-  height      BigInt
-  userId      String?  @map("user_id")
-  countryCode String?  @map("country_code")
-  capturedAt  DateTime @default(now()) @map("captured_at")
-  message     String?
-  user        User?    @relation(fields: [userId], references: [id])
+// ============================================
+// Transaction History Tables
+// ============================================
 
-  @@map("flags")
+// Raw data: Every 30 seconds, retention 7 days
+model TransactionHistoryRaw {
+  id          Int      @id @default(autoincrement())
+  countryCode String   @map("country_code")
+  height      BigInt
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+
+  @@index([countryCode, recordedAt(sort: Desc)])
+  @@index([recordedAt(sort: Desc)])
+  @@map("transaction_history_raw")
 }
 
-model GlobalHistory {
-  id         Int      @id @default(autoincrement())
-  height     BigInt
-  recordedAt DateTime @default(now()) @map("recorded_at")
+// Daily aggregates: infinite retention
+model TransactionHistoryDaily {
+  id          Int      @id @default(autoincrement())
+  countryCode String   @map("country_code")
+  height      BigInt
+  minHeight   BigInt   @map("min_height")
+  maxHeight   BigInt   @map("max_height")
+  sampleCount Int      @map("sample_count")
+  recordedAt  DateTime @map("recorded_at")
 
-  @@map("global_history")
+  @@index([countryCode, recordedAt(sort: Desc)])
+  @@index([recordedAt(sort: Desc)])
+  @@map("transaction_history_daily")
 }
