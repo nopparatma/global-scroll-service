@@ -21,10 +21,13 @@ model User {
 // ============================================
 
 // Raw data: Every 30 seconds, retention 7 days
+// NOTE: All height values are stored in CENTIMETERS (not pixels)
+// To convert to meters: height / 100
+// To convert to kilometers: height / 100000
 model TransactionHistoryRaw {
   id          Int      @id @default(autoincrement())
   countryCode String   @map("country_code")
-  height      BigInt
+  height      BigInt   // Height in centimeters
   recordedAt  DateTime @default(now()) @map("recorded_at")
 
   @@index([countryCode, recordedAt(sort: Desc)])
@@ -33,12 +36,13 @@ model TransactionHistoryRaw {
 }
 
 // Daily aggregates: infinite retention
+// NOTE: All height values are stored in CENTIMETERS (not pixels)
 model TransactionHistoryDaily {
   id          Int      @id @default(autoincrement())
   countryCode String   @map("country_code")
-  height      BigInt
-  minHeight   BigInt   @map("min_height")
-  maxHeight   BigInt   @map("max_height")
+  height      BigInt   // Average height in centimeters
+  minHeight   BigInt   @map("min_height") // Minimum height in centimeters
+  maxHeight   BigInt   @map("max_height") // Maximum height in centimeters
   sampleCount Int      @map("sample_count")
   recordedAt  DateTime @map("recorded_at")
 

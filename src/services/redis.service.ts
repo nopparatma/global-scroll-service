@@ -28,8 +28,21 @@ class RedisService {
     await this.client.quit();
   }
 
-  async incrementGlobalHeight(amount: number): Promise<number> {
-    return await this.client.incrBy("global:height", amount);
+  async setGlobalHeight(value: string): Promise<void> {
+    await this.client.set("global:height", value);
+  }
+
+  async calculateGlobalHeightFromCountries(): Promise<string> {
+    // Get all country heights
+    const countryHeights = await this.getAllCountryHeights();
+
+    // Sum all country heights
+    let total = BigInt(0);
+    for (const height of Object.values(countryHeights)) {
+      total += BigInt(height);
+    }
+
+    return total.toString();
   }
 
   async incrementCountryHeight(
@@ -116,21 +129,75 @@ class RedisService {
     return last ? parseInt(last, 10) : Date.now();
   }
 
-  // For gravity
-  async decreaseGlobalHeight(amount: number): Promise<number> {
-    return await this.client.decrBy("global:height", amount);
+  // Country-specific last activity tracking
+  async updateCountryLastActivity(countryCode: string) {
+    await this.client.set(
+      `global:last_activity:${countryCode}`,
+      Date.now().toString(),
+    );
   }
 
-  // For velocity tracking
-  async setVelocity(velocity: number) {
-    await this.client.set("global:velocity", velocity.toString(), {
-      EX: 5, // Expire after 5 seconds (if no updates, velocity = 0)
+  async getCountryLastActivity(countryCode: string): Promise<number> {
+    const last = await this.client.get(`global:last_activity:${countryCode}`);
+    return last ? parseInt(last, 10) : 0; // Return 0 if never active (will trigger gravity)
+  }
+
+  async getAllCountryLastActivities(): Promise<Record<string, number>> {
+    // Scan for all country last activity keys
+    const keys: string[] = [];
+    let cursor = "0";
+
+    do {
+      const result = await this.client.scan(cursor, {
+        MATCH: "global:last_activity:*",
+        COUNT: 100,
+      });
+      cursor = result.cursor.toString();
+      keys.push(...result.keys);
+    } while (cursor !== "0");
+
+    if (keys.length === 0) return {};
+
+    // Get all values
+    const values = await this.client.mGet(keys);
+
+    // Build result object
+    const result: Record<string, number> = {};
+    keys.forEach((key, i) => {
+      const countryCode = key.replace("global:last_activity:", "");
+      const timestamp = values[i] ? parseInt(values[i], 10) : 0;
+      result[countryCode] = timestamp;
     });
+
+    return result;
   }
 
-  async getVelocity(): Promise<number> {
-    const velocity = await this.client.get("global:velocity");
-    return velocity ? parseFloat(velocity) : 0;
+  // For gravity - decrease individual country heights
+  async decreaseCountryHeight(
+    countryCode: string,
+    amount: number,
+  ): Promise<number> {
+    // Prevent height from going negative
+    const currentHeight = await this.client.get(`global:height:${countryCode}`);
+    const currentValue = currentHeight ? parseInt(currentHeight, 10) : 0;
+
+    if (currentValue <= 0) return 0;
+
+    const decreaseAmount = Math.min(amount, currentValue);
+    return await this.client.decrBy(
+      `global:height:${countryCode}`,
+      decreaseAmount,
+    );
+  }
+
+  async decreaseAllCountryHeights(amount: number): Promise<void> {
+    // Get all country keys
+    const countryHeights = await this.getAllCountryHeights();
+
+    // Decrease each country's height
+    for (const countryCode of Object.keys(countryHeights)) {
+      await this.decreaseCountryHeight(countryCode, amount);
+    }
   }
 }
 

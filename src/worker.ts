@@ -1,6 +1,7 @@
 import { redisService } from "./services/redis.service";
 import { startPersistenceWorker } from "./workers/persistence.worker";
 import { startGravityWorker } from "./workers/gravity.worker";
+import { startGlobalHeightWorker } from "./workers/global-height.worker";
 import { runAggregation } from "./workers/aggregation.worker";
 import cron from "node-cron";
 import logger from "./utils/logger";
@@ -13,6 +14,7 @@ async function startWorker() {
     await redisService.connect();
 
     // Start Background Workers
+    startGlobalHeightWorker(); // Calculate global height from country heights
     startPersistenceWorker(); // Sync Redis → PostgreSQL
     startGravityWorker(); // Apply gravity when idle
 

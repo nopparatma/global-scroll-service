@@ -8,7 +8,7 @@ import i18next from "../config/i18n";
 
 // Validation Schemas
 const ScrollBatchSchema = z.object({
-  delta: z.number().positive().max(10000), // Max 10k pixels per batch
+  delta: z.number().positive().max(10000), // Max 10k pixels per batch (converted to cm server-side)
 });
 
 export const initializeSocketIO = (io: Server) => {
@@ -66,7 +66,7 @@ export const initializeSocketIO = (io: Server) => {
       socket.on("scroll_batch", async (data) => {
         try {
           // Validate
-          const { delta } = ScrollBatchSchema.parse(data);
+          const { delta } = ScrollBatchSchema.parse(data); // delta in pixels from client
 
           const now = Date.now();
           const timeDiff = now - lastBatchTime;
@@ -74,6 +74,7 @@ export const initializeSocketIO = (io: Server) => {
           // Rate Limit (Simple)
           if (timeDiff < 500) return; // Ignore if < 500ms
 
+          // Process scroll batch (pixels will be converted to centimeters inside service)
           await gameService.processScrollBatch(
             user.id,
             countryCode,

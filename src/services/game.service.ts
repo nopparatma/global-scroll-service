@@ -1,50 +1,48 @@
 import { redisService } from "./redis.service";
+import { getCurrentVelocity } from "../workers/global-height.worker";
 import logger from "../utils/logger";
+import {
+  pixelsToCentimeters,
+  MAX_VELOCITY_CM_PER_SECOND,
+} from "../config/game.constants";
 
 class GameService {
-  // Anti-cheat constants
-  private readonly MAX_VELOCITY = 5000; // pixels per second
-  private readonly MIN_BATCH_INTERVAL = 1000; // ms
-
   async processScrollBatch(
     userId: string,
     countryCode: string,
-    delta: number,
+    deltaPixels: number,
     timeSinceLastBatch: number,
   ) {
-    // 1. Anti-Cheat: Velocity Check
-    const velocity = (delta / timeSinceLastBatch) * 1000; // px/sec
-    if (velocity > this.MAX_VELOCITY) {
+    // 1. Convert pixels to centimeters
+    const deltaCentimeters = pixelsToCentimeters(deltaPixels);
+
+    // 2. Anti-Cheat: Velocity Check (in cm/s)
+    const velocityCmPerSec = (deltaCentimeters / timeSinceLastBatch) * 1000;
+    if (velocityCmPerSec > MAX_VELOCITY_CM_PER_SECOND) {
       logger.warn(
-        `Suspicious activity from ${userId}: Velocity ${velocity.toFixed(2)} px/s`,
+        `Suspicious activity from ${userId}: Velocity ${velocityCmPerSec.toFixed(2)} cm/s (${(velocityCmPerSec / 100).toFixed(2)} m/s)`,
       );
       return null; // Reject
     }
 
-    // 2. Update Redis
-    const newHeight = await redisService.incrementGlobalHeight(delta);
-    await redisService.incrementCountryHeight(countryCode, delta);
+    // 3. Update Redis (only country height in centimeters, global height calculated by worker)
+    await redisService.incrementCountryHeight(countryCode, deltaCentimeters);
     await redisService.updateLastActivity();
-
-    // 3. Update Velocity (Exponential Moving Average)
-    const currentVelocity = await redisService.getVelocity();
-    const smoothedVelocity = currentVelocity * 0.7 + velocity * 0.3; // EMA with alpha=0.3
-    await redisService.setVelocity(smoothedVelocity);
+    await redisService.updateCountryLastActivity(countryCode);
 
     return {
-      height: newHeight.toString(),
-      velocity: Math.round(smoothedVelocity),
+      success: true,
     };
   }
 
   async getGameState() {
     const height = await redisService.getGlobalHeight();
-    const velocity = await redisService.getVelocity();
+    const velocity = getCurrentVelocity(); // Get velocity from worker
     const countryHeights = await redisService.getAllCountryHeights(); // Get all countries dynamically
 
     return {
       height,
-      velocity: Math.round(velocity),
+      velocity,
       countryHeights,
     };
   }

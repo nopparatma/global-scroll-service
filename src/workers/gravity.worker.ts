@@ -1,38 +1,55 @@
 import { redisService } from "../services/redis.service";
 import logger from "../utils/logger";
-
-const GRAVITY_CHECK_INTERVAL = 1000; // 1 sec
-const IDLE_THRESHOLD = 10000; // 10 sec
-const GRAVITY_DECAY = 100; // px per tick
+import {
+  GRAVITY_CHECK_INTERVAL_MS,
+  COUNTRY_IDLE_THRESHOLD_MS,
+  GRAVITY_DECAY_CM_PER_TICK,
+} from "../config/game.constants";
 
 export const startGravityWorker = () => {
   setInterval(async () => {
     try {
-      const lastActivity = await redisService.getLastActivity();
       const now = Date.now();
 
-      if (now - lastActivity > IDLE_THRESHOLD) {
-        const currentHeight = await redisService.getGlobalHeight();
-        const heightValue = BigInt(currentHeight);
+      // Get all countries and their heights
+      const countryHeights = await redisService.getAllCountryHeights();
 
-        if (heightValue > 0) {
-          // Calculate decay amount: min(currentHeight, GRAVITY_DECAY)
-          // Prevent height from going negative
-          const decayAmount =
-            heightValue >= BigInt(GRAVITY_DECAY)
-              ? GRAVITY_DECAY
-              : Number(heightValue);
+      if (Object.keys(countryHeights).length === 0) {
+        return; // No countries to process
+      }
 
-          await redisService.decreaseGlobalHeight(decayAmount);
+      // Get all country last activities
+      const countryActivities =
+        await redisService.getAllCountryLastActivities();
 
-          const newHeight = Number(heightValue) - decayAmount;
-          logger.debug(
-            `Gravity applied: -${decayAmount}px (${Number(heightValue)} → ${newHeight})`,
+      let affectedCountries = 0;
+
+      // Check each country individually
+      for (const [countryCode, height] of Object.entries(countryHeights)) {
+        const heightValue = parseInt(height, 10);
+
+        if (heightValue <= 0) continue; // Skip countries with 0 height
+
+        const lastActivity = countryActivities[countryCode] || 0;
+        const idleTime = now - lastActivity;
+
+        // Apply gravity if country has been idle > threshold
+        if (idleTime > COUNTRY_IDLE_THRESHOLD_MS) {
+          await redisService.decreaseCountryHeight(
+            countryCode,
+            GRAVITY_DECAY_CM_PER_TICK,
           );
+          affectedCountries++;
         }
+      }
+
+      if (affectedCountries > 0) {
+        logger.debug(
+          `Gravity applied to ${affectedCountries} countries (-${GRAVITY_DECAY_CM_PER_TICK}cm = -${GRAVITY_DECAY_CM_PER_TICK / 100}m each)`,
+        );
       }
     } catch (error) {
       logger.error("Gravity worker error", error);
     }
-  }, GRAVITY_CHECK_INTERVAL);
+  }, GRAVITY_CHECK_INTERVAL_MS);
 };
