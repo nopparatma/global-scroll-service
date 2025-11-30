@@ -1,44 +1,43 @@
-
 services:
   app:
-    build: .
+    image: global-scroll-service:${TAG:-latest}
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/globalscroll?schema=public
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run dev
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${PORT:-3000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   worker:
-    build: .
-    environment:
-      - NODE_ENV=development
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/globalscroll?schema=public
+    image: global-scroll-service:${TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run worker
+    command: ["node", "dist/worker.js"]
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -47,19 +46,22 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=globalscroll
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-globalscroll}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
   postgres_data:
+  redis_data:
+
