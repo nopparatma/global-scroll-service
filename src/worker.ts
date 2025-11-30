@@ -5,6 +5,7 @@ import { startGlobalHeightWorker } from "./workers/global-height.worker";
 import { runAggregation } from "./workers/aggregation.worker";
 import cron from "node-cron";
 import logger from "./utils/logger";
+import { env } from "./config/env";
 
 async function startWorker() {
   try {
@@ -18,8 +19,9 @@ async function startWorker() {
     startPersistenceWorker(); // Sync Redis → PostgreSQL
     startGravityWorker(); // Apply gravity when idle
 
-    // Schedule aggregation job (03:00 AM daily)
-    cron.schedule("0 3 * * *", async () => {
+    // Schedule aggregation job (configurable via AGGREGATION_CRON_SCHEDULE)
+    const cronSchedule = env.AGGREGATION_CRON_SCHEDULE;
+    cron.schedule(cronSchedule, async () => {
       logger.info("Starting scheduled aggregation...");
       try {
         await runAggregation();
@@ -29,7 +31,7 @@ async function startWorker() {
       }
     });
 
-    logger.info("Aggregation cron job scheduled (03:00 AM daily)");
+    logger.info(`Aggregation cron job scheduled: ${cronSchedule}`);
     logger.info("Worker process started successfully");
 
     // Graceful Shutdown

@@ -100,10 +100,7 @@ class RedisService {
     countryKeys.forEach((key, i) => {
       const countryCode = key.replace("global:height:", "");
       const height = values[i] || "0";
-      if (parseInt(height, 10) > 0) {
-        // Only include countries with height > 0
-        result[countryCode] = height;
-      }
+      result[countryCode] = height;
     });
 
     // Sort by height (descending)

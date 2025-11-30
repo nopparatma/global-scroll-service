@@ -88,10 +88,6 @@ function createUser(userId) {
         }
     });
 
-    socket.on('milestone_reached', (data) => {
-        log(userId, `${colors.magenta}🎉 MILESTONE REACHED!${colors.reset}`, data);
-    });
-
     socket.on('disconnect', (reason) => {
         log(userId, `${colors.red}❌ Disconnected${colors.reset}`, { reason });
     });

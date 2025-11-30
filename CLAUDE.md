@@ -66,12 +66,11 @@ The system runs as **two separate Node.js processes**:
    - Updates last activity timestamp
    - Calculates smoothed velocity using EMA (Exponential Moving Average)
 4. Tick loop broadcasts state to all clients every 200ms
-5. `milestoneManager.ts` checks if height crossed milestone thresholds
 
 **Cold Path (Persistence, PostgreSQL-based):**
 - Persistence worker reads Redis state every 30s
-- Writes snapshot to `GlobalHistory` table
-- Milestone flags written immediately when unlocked
+- Writes snapshot to `TransactionHistoryRaw` table
+- Daily aggregation worker creates `TransactionHistoryDaily` records
 
 ### Key Services
 
@@ -83,11 +82,6 @@ The system runs as **two separate Node.js processes**:
 - Anti-cheat: velocity validation, batch interval enforcement
 - Velocity smoothing using Exponential Moving Average (alpha=0.3)
 - Returns height as string to avoid JavaScript integer overflow (safe limit 2^53)
-
-**`milestoneManager.ts`**: Milestone/flag system
-- Tracks next milestone (starts at 1000m, increments by 1000m)
-- Creates Flag records when height crosses thresholds
-- Associates flags with user who triggered the milestone
 
 **`user.service.ts`**: User management
 - Find or create users by deviceId
@@ -105,9 +99,31 @@ The system runs as **two separate Node.js processes**:
 
 ### Anti-Cheat System
 
-**Velocity Check**: Rejects batches with velocity > 5000px/s
+**Velocity Check**: Rejects batches with velocity > 2000 mm/s (2 m/s, adjustable via `MAX_VELOCITY_MULTIPLIER`)
 **Rate Limiting**: Ignores scroll_batch events < 500ms apart
 **Batch Validation**: Max 10,000px per batch (Zod schema)
+
+### Physics & Unit Conversion
+
+**CSS Reference Pixel (W3C Standard):**
+- All pixel-to-millimeter conversions use CSS Reference Pixel: `1 px = 1/96 inch = 0.264583 mm`
+- This ensures **equal gameplay across all devices** (iPhone, Android, Desktop, etc.)
+- **Physical realism**: Scrolling ~1 cm on screen = gaining ~1 cm in the game
+- **Storage unit**: Millimeters (integers) for Redis & PostgreSQL compatibility
+- **Example conversions:**
+  - 100 px = 26 mm = 2.6 cm
+  - 1000 px = 265 mm = 26.5 cm
+  - 3780 px ≈ 1000 mm = 100 cm = 1 meter
+
+**Why CSS Reference Pixel?**
+- Device-independent: All users experience the same difficulty regardless of screen PPI
+- Web standard: Follows W3C CSS specification
+- Fair gameplay: No advantage for high-DPI or low-DPI devices
+
+**Why Millimeters?**
+- Integer values required for Redis `INCRBY`/`DECRBY` commands
+- Fine-grained precision while avoiding floating-point errors
+- Easy conversion: 10mm = 1cm, 1000mm = 1m
 
 ### Database Schema Notes
 
@@ -118,16 +134,37 @@ The system runs as **two separate Node.js processes**:
 
 **Models:**
 - `User`: Indexed by unique `deviceId`, tracks `countryCode`
-- `Flag`: Milestone markers with height, userId, countryCode
-- `GlobalHistory`: Height snapshots for analytics
+- `TransactionHistoryRaw`: Height snapshots every 30s (7-day retention)
+- `TransactionHistoryDaily`: Daily aggregated height data (infinite retention)
 
 ### Environment Variables
 
-Required environment variables (create `.env` from `.env.example`):
+Required environment variables:
 - `PORT`: Server port (default 3000)
-- `NODE_ENV`: development | production
+- `NODE_ENV`: development | production | staging | test
 - `REDIS_URL`: Redis connection string
 - `DATABASE_URL`: PostgreSQL connection string
+- `CORS_ORIGIN`: CORS allowed origins (default: *)
+
+**Game Balance Configuration:**
+- `GAME_DIFFICULTY_MULTIPLIER`: Overall difficulty (1.0 = normal, 0.5 = easier, 2.0 = harder)
+- `GRAVITY_STRENGTH_MULTIPLIER`: Gravity decay speed (1.0 = normal, 0.5 = slower, 2.0 = faster)
+- `MAX_VELOCITY_MULTIPLIER`: Anti-cheat velocity limit adjustment (1.0 = normal)
+
+**Worker Configuration:**
+- `AGGREGATION_CRON_SCHEDULE`: Cron expression for data aggregation (default: "0 3 * * *")
+  - Cron format: `minute hour day month weekday`
+  - Example breakdown of "0 */12 * * *":
+    - `0` = minute 0
+    - `*/12` = every 12 hours (00:00, 12:00)
+    - `*` = every day of month
+    - `*` = every month
+    - `*` = every day of week
+  - Common patterns:
+    - `"0 3 * * *"` = Daily at 03:00 AM (production default)
+    - `"0 */6 * * *"` = Every 6 hours
+    - `"*/5 * * * *"` = Every 5 minutes (development)
+  - Use [crontab.guru](https://crontab.guru/) for testing expressions
 
 ### Internationalization (i18n)
 
@@ -142,7 +179,13 @@ Required environment variables (create `.env` from `.env.example`):
 Separating the worker prevents background jobs (gravity, persistence) from blocking real-time Socket.io event processing. Both connect to the same Redis instance.
 
 ### Gravity Mechanism
-When no user activity for >10 seconds, height decreases by 100px/second until reaching 0. This creates urgency and keeps users engaged.
+When a country has no user activity for >5 seconds, height decreases by 26 mm/second = 2.6 cm/s (adjustable via `GRAVITY_STRENGTH_MULTIPLIER`) until reaching 0. This creates urgency and keeps users engaged.
+
+**Per-Country Gravity:**
+- Each country's height decays independently
+- Gravity only applies to idle countries (>5s since last scroll)
+- Decay rate: 26 mm/tick (integer value for Redis compatibility)
+- Global height is recalculated every second as sum of all country heights
 
 ### Scalability Considerations
 - Client batching: Clients should accumulate scroll locally, send batches every 3-5s

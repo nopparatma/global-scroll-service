@@ -2,8 +2,8 @@ import { redisService } from "./redis.service";
 import { getCurrentVelocity } from "../workers/global-height.worker";
 import logger from "../utils/logger";
 import {
-  pixelsToCentimeters,
-  MAX_VELOCITY_CM_PER_SECOND,
+  pixelsToMillimeters,
+  MAX_VELOCITY_MM_PER_SECOND,
 } from "../config/game.constants";
 
 class GameService {
@@ -13,20 +13,20 @@ class GameService {
     deltaPixels: number,
     timeSinceLastBatch: number,
   ) {
-    // 1. Convert pixels to centimeters
-    const deltaCentimeters = pixelsToCentimeters(deltaPixels);
+    // 1. Convert pixels to millimeters
+    const deltaMillimeters = pixelsToMillimeters(deltaPixels);
 
-    // 2. Anti-Cheat: Velocity Check (in cm/s)
-    const velocityCmPerSec = (deltaCentimeters / timeSinceLastBatch) * 1000;
-    if (velocityCmPerSec > MAX_VELOCITY_CM_PER_SECOND) {
+    // 2. Anti-Cheat: Velocity Check (in mm/s)
+    const velocityMmPerSec = (deltaMillimeters / timeSinceLastBatch) * 1000;
+    if (velocityMmPerSec > MAX_VELOCITY_MM_PER_SECOND) {
       logger.warn(
-        `Suspicious activity from ${userId}: Velocity ${velocityCmPerSec.toFixed(2)} cm/s (${(velocityCmPerSec / 100).toFixed(2)} m/s)`,
+        `Suspicious activity from ${userId}: Velocity ${velocityMmPerSec.toFixed(2)} mm/s (${(velocityMmPerSec / 1000).toFixed(2)} m/s)`,
       );
       return null; // Reject
     }
 
-    // 3. Update Redis (only country height in centimeters, global height calculated by worker)
-    await redisService.incrementCountryHeight(countryCode, deltaCentimeters);
+    // 3. Update Redis (only country height in millimeters, global height calculated by worker)
+    await redisService.incrementCountryHeight(countryCode, deltaMillimeters);
     await redisService.updateLastActivity();
     await redisService.updateCountryLastActivity(countryCode);
 

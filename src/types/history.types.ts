@@ -46,7 +46,5 @@ export interface RetentionConfig {
 
 export interface RetentionPolicy {
   raw: RetentionConfig;
-  fiveMin: RetentionConfig;
-  hourly: RetentionConfig;
   daily: RetentionConfig;
 }

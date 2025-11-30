@@ -9,20 +9,25 @@ export const startPersistenceWorker = () => {
       // Sync Country Heights (includes global aggregate)
       const countryHeights = await redisService.getAllCountryHeights();
 
-      if (Object.keys(countryHeights).length > 0) {
-        // Batch insert country heights
-        const countryData = Object.entries(countryHeights).map(
-          ([countryCode, height]) => ({
-            countryCode,
-            height: BigInt(height),
-          }),
-        );
+      // Always insert records, even if all heights are 0
+      // This ensures continuous data collection for analytics
+      const countryData = Object.entries(countryHeights).map(
+        ([countryCode, height]) => ({
+          countryCode,
+          height: BigInt(height),
+        }),
+      );
 
+      if (countryData.length > 0) {
         await prisma.transactionHistoryRaw.createMany({
           data: countryData,
         });
 
         logger.info(`Synced ${countryData.length} country heights to DB`);
+      } else {
+        logger.debug(
+          "No country data to sync (no countries have scrolled yet)",
+        );
       }
     } catch (error) {
       logger.error("Persistence worker error", error);

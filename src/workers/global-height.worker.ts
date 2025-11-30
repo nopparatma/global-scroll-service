@@ -11,26 +11,26 @@ let currentVelocity = 0; // Store velocity in memory
 export const startGlobalHeightWorker = () => {
   setInterval(async () => {
     try {
-      // 1. Calculate global height (in centimeters) from all country heights
-      const globalHeightCm =
+      // 1. Calculate global height (in millimeters) from all country heights
+      const globalHeightMm =
         await redisService.calculateGlobalHeightFromCountries();
 
-      // 2. Calculate velocity based on height change (in cm/s)
-      const currentHeight = BigInt(globalHeightCm);
+      // 2. Calculate velocity based on height change (in mm/s)
+      const currentHeight = BigInt(globalHeightMm);
       const prevHeight = BigInt(previousHeight);
       const heightDelta = currentHeight - prevHeight;
 
-      // Convert to centimeters per second
+      // Convert to millimeters per second
       currentVelocity = Number(heightDelta) / VELOCITY_WINDOW_SECONDS;
 
-      // 3. Update Redis with new global height (in centimeters)
-      await redisService.setGlobalHeight(globalHeightCm);
+      // 3. Update Redis with new global height (in millimeters)
+      await redisService.setGlobalHeight(globalHeightMm);
 
       // 4. Store current height for next iteration
-      previousHeight = globalHeightCm;
+      previousHeight = globalHeightMm;
 
       logger.debug(
-        `Global height updated: ${globalHeightCm}cm = ${(Number(globalHeightCm) / 100).toFixed(2)}m (Δ${heightDelta}cm, velocity: ${currentVelocity.toFixed(2)} cm/s = ${(currentVelocity / 100).toFixed(2)} m/s)`,
+        `Global height updated: ${globalHeightMm}mm = ${(Number(globalHeightMm) / 10).toFixed(2)}cm = ${(Number(globalHeightMm) / 1000).toFixed(2)}m (Δ${heightDelta}mm, velocity: ${currentVelocity.toFixed(2)} mm/s = ${(currentVelocity / 1000).toFixed(2)} m/s)`,
       );
     } catch (error) {
       logger.error("Global height worker error", error);

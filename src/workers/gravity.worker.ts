@@ -3,7 +3,7 @@ import logger from "../utils/logger";
 import {
   GRAVITY_CHECK_INTERVAL_MS,
   COUNTRY_IDLE_THRESHOLD_MS,
-  GRAVITY_DECAY_CM_PER_TICK,
+  GRAVITY_DECAY_MM_PER_TICK,
 } from "../config/game.constants";
 
 export const startGravityWorker = () => {
@@ -37,7 +37,7 @@ export const startGravityWorker = () => {
         if (idleTime > COUNTRY_IDLE_THRESHOLD_MS) {
           await redisService.decreaseCountryHeight(
             countryCode,
-            GRAVITY_DECAY_CM_PER_TICK,
+            GRAVITY_DECAY_MM_PER_TICK,
           );
           affectedCountries++;
         }
@@ -45,7 +45,7 @@ export const startGravityWorker = () => {
 
       if (affectedCountries > 0) {
         logger.debug(
-          `Gravity applied to ${affectedCountries} countries (-${GRAVITY_DECAY_CM_PER_TICK}cm = -${GRAVITY_DECAY_CM_PER_TICK / 100}m each)`,
+          `Gravity applied to ${affectedCountries} countries (-${GRAVITY_DECAY_MM_PER_TICK}mm = -${GRAVITY_DECAY_MM_PER_TICK / 10}cm = -${GRAVITY_DECAY_MM_PER_TICK / 1000}m each)`,
         );
       }
     } catch (error) {

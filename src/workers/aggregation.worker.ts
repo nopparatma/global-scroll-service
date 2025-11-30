@@ -6,16 +6,8 @@ import type { RetentionPolicy } from "../types/history.types";
 // Retention configuration for country-based history
 const RETENTION_CONFIG: RetentionPolicy = {
   raw: {
-    duration: 7 * 24 * 60 * 60 * 1000, // 7 days (keep raw data for a week)
+    duration: 1 * 24 * 60 * 60 * 1000, // 1 days (keep raw data for a day)
     enabled: true,
-  },
-  fiveMin: {
-    duration: 7 * 24 * 60 * 60 * 1000, // Not used
-    enabled: false,
-  },
-  hourly: {
-    duration: 30 * 24 * 60 * 60 * 1000, // Not used
-    enabled: false,
   },
   daily: {
     duration: Infinity, // Infinite retention
